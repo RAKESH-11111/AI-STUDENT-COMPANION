@@ -1,0 +1,105 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                   String        @id @default(uuid())
+  email                String        @unique
+  password             String
+  name                 String
+  role                 String        @default("STUDENT") // "STUDENT", "FACULTY", "MENTOR", "ADMIN"
+  avatarUrl            String?
+  title                String?       // E.g. "Senior Faculty Mentor", "Lead Career Mentor"
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  // Student specific metrics
+  level                Int           @default(1)
+  xp                   Int           @default(0)
+  careerReadinessScore Float         @default(70.0)
+  skillMasteryScore    Float         @default(70.0)
+  major                String?       // E.g. "Computer Science", "Data Engineering", "UI/UX Design"
+
+  // Self-relation: Mentor <-> Mentees
+  mentorId             String?
+  mentor               User?         @relation("Mentorship", fields: [mentorId], references: [id])
+  mentees              User[]        @relation("Mentorship")
+
+  // Relations
+  goals                Goal[]
+  tasks                Task[]
+  sentMessages         ChatMessage[] @relation("SentMessages")
+  receivedMessages     ChatMessage[] @relation("ReceivedMessages")
+  studyGroups          StudyGroup[]  @relation("GroupMembers")
+  achievements         Badge[]
+}
+
+model Goal {
+  id          String   @id @default(uuid())
+  title       String
+  progress    Float    @default(0.0) // 0 to 100
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  xpReward    Int      @default(100)
+  isCompleted Boolean  @default(false)
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StudyGroup {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  category    String
+  icon        String   @default("group")
+  members     User[]   @relation("GroupMembers")
+  createdAt   DateTime @default(now())
+}
+
+model Opportunity {
+  id             String   @id @default(uuid())
+  title          String
+  description    String
+  category       String   // "Job", "Internship", "Event", "Course"
+  applicantsCount Int     @default(0)
+  logoUrl        String?
+  createdAt      DateTime @default(now())
+}
+
+model ChatMessage {
+  id          String   @id @default(uuid())
+  message     String
+  isAiSender  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  senderId    String?
+  sender      User?    @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  receiverId  String?
+  receiver    User?    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  title       String
+  icon        String
+  color       String
+  studentId   String
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
