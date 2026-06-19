@@ -347,51 +347,12 @@ function LoginContent() {
 
             {/* Social Login Button */}
             <button
-              onClick={() => handleQuickLogin('STUDENT')}
+              onClick={() => alert("Google authentication is not yet configured. Please sign in using your email and password.")}
               className="flex items-center justify-center gap-3 w-full h-12 border-2 border-outline-variant/30 rounded-xl font-bold text-[14px] text-on-surface hover:bg-surface-container-low transition-colors active:scale-95 mb-6"
             >
               <img alt="Google Logo" className="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEwcL9h6UdyrQt4oxvPzxl0VbFivg6pywrHbL4hv2P-F1dyn4inKwMMcjuD5djDIe-5TlXyNuXP2i-hn5TzmdRrfg8tz0Npf_rXFtoCt-3xrKtpZXb3Crv-p-O_iU9tLgyKyHnxwu-zZN1xrJLpbpXviv6dUioxg8s3NkUa-DhfYxu8CDHtkMI_uZbzefSg9PbCgr1a0Y59TGF_NLdkNlMVutHUT7wu4isw0Su_zH6bgPTP5d7Q4StWy-Ar8s2zqyJ_dhnEeSM6DYr" />
               <span>Google</span>
             </button>
-
-            {/* Quick Demo Login (Extremely useful for review) */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-outline-variant/40" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-[#fafbff] dark:bg-[#0c0f1d] px-2 text-on-surface-variant font-bold text-[10px] tracking-wider">
-                  Or Quick Demo Access
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <button
-                onClick={() => handleQuickLogin('STUDENT')}
-                className="py-2.5 px-3 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface hover:bg-surface-container-low transition-colors"
-              >
-                Student Demo
-              </button>
-              <button
-                onClick={() => handleQuickLogin('FACULTY')}
-                className="py-2.5 px-3 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface hover:bg-surface-container-low transition-colors"
-              >
-                Faculty Demo
-              </button>
-              <button
-                onClick={() => handleQuickLogin('MENTOR')}
-                className="py-2.5 px-3 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface hover:bg-surface-container-low transition-colors"
-              >
-                Mentor Demo
-              </button>
-              <button
-                onClick={() => handleQuickLogin('ADMIN')}
-                className="py-2.5 px-3 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface hover:bg-surface-container-low transition-colors"
-              >
-                Admin Demo
-              </button>
-            </div>
 
             {/* Sign Up Switch */}
             <p className="text-center mt-6 text-[14px] text-on-surface-variant font-medium">
