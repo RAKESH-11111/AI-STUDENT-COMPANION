@@ -109,7 +109,7 @@ function LoginContent() {
   };
 
   const handleGoogleLogin = () => {
-    const clientId = '9652289106-abc123xyz.apps.googleusercontent.com';
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '9652289106-abc123xyz.apps.googleusercontent.com';
     const redirectUri = 'http://localhost:3000/login';
     const scope = 'email profile openid';
     const responseType = 'id_token';
