@@ -10,7 +10,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const isRegisterParam = searchParams.get('register') === 'true';
 
-  const { login, register, isAuthenticated, user, error, isLoading } = useStore();
+  const { login, loginWithGoogle, register, isAuthenticated, user, error, isLoading } = useStore();
 
   const [isRegister, setIsRegister] = useState(isRegisterParam);
   const [email, setEmail] = useState('');
@@ -33,6 +33,28 @@ function LoginContent() {
       redirectToDashboard(user.role);
     }
   }, [isAuthenticated, user]);
+
+  // Google OAuth hash token check
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1));
+      const idToken = params.get('id_token');
+      if (idToken) {
+        // Clear hash from URL immediately
+        window.history.replaceState(null, '', window.location.pathname);
+        
+        // Authenticate with backend
+        (async () => {
+          const success = await loginWithGoogle(idToken);
+          if (success && user) {
+            redirectToDashboard(user.role);
+          }
+        })();
+      }
+    }
+  }, [router, isAuthenticated, user]);
 
   // Floating particles background effect
   useEffect(() => {
@@ -84,6 +106,18 @@ function LoginContent() {
       default:
         router.push('/');
     }
+  };
+
+  const handleGoogleLogin = () => {
+    const clientId = '9652289106-abc123xyz.apps.googleusercontent.com';
+    const redirectUri = 'http://localhost:3000/login';
+    const scope = 'email profile openid';
+    const responseType = 'id_token';
+    const nonce = Math.random().toString(36).substring(2);
+    
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&scope=${encodeURIComponent(scope)}&nonce=${nonce}`;
+    
+    window.location.href = googleAuthUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -347,7 +381,7 @@ function LoginContent() {
 
             {/* Social Login Button */}
             <button
-              onClick={() => alert("Google authentication is not yet configured. Please sign in using your email and password.")}
+              onClick={handleGoogleLogin}
               className="flex items-center justify-center gap-3 w-full h-12 border-2 border-outline-variant/30 rounded-xl font-bold text-[14px] text-on-surface hover:bg-surface-container-low transition-colors active:scale-95 mb-6"
             >
               <img alt="Google Logo" className="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEwcL9h6UdyrQt4oxvPzxl0VbFivg6pywrHbL4hv2P-F1dyn4inKwMMcjuD5djDIe-5TlXyNuXP2i-hn5TzmdRrfg8tz0Npf_rXFtoCt-3xrKtpZXb3Crv-p-O_iU9tLgyKyHnxwu-zZN1xrJLpbpXviv6dUioxg8s3NkUa-DhfYxu8CDHtkMI_uZbzefSg9PbCgr1a0Y59TGF_NLdkNlMVutHUT7wu4isw0Su_zH6bgPTP5d7Q4StWy-Ar8s2zqyJ_dhnEeSM6DYr" />

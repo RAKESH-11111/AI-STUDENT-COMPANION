@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe } from '../controllers/auth.controller';
+import { register, login, getMe, googleLogin } from '../controllers/auth.controller';
 import {
   getGoals,
   createGoal,
@@ -38,6 +38,7 @@ const router = Router();
 // --- Auth Routes ---
 router.post('/auth/register', register);
 router.post('/auth/login', login);
+router.post('/auth/google', googleLogin);
 router.get('/auth/me', authenticateToken, getMe);
 
 // --- Student Routes ---

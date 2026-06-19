@@ -70,6 +70,7 @@ interface StoreState {
   // Actions
   initializeAuth: () => Promise<void>;
   login: (credentials: any) => Promise<boolean>;
+  loginWithGoogle: (credential: string) => Promise<boolean>;
   register: (data: any) => Promise<boolean>;
   logout: () => void;
   
@@ -157,6 +158,30 @@ export const useStore = create<StoreState>((set, get) => ({
       const data = await res.json();
       if (!res.ok) {
         set({ error: data.error || 'Login failed' });
+        return false;
+      }
+      localStorage.setItem('rai_token', data.token);
+      set({ token: data.token, user: data.user, isAuthenticated: true, error: null });
+      return true;
+    } catch (err) {
+      set({ error: 'Server connection failed' });
+      return false;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  loginWithGoogle: async (credential) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        set({ error: data.error || 'Google login failed' });
         return false;
       }
       localStorage.setItem('rai_token', data.token);

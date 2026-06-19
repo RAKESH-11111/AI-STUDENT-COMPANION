@@ -126,3 +126,69 @@ export const getMe = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: err.message || 'Failed to fetch user data' });
   }
 };
+
+export const googleLogin = async (req: Request, res: Response) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ error: 'Google credential token is required' });
+  }
+
+  try {
+    // 1. Verify the Google token using Google's tokeninfo API
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    if (!response.ok) {
+      return res.status(400).json({ error: 'Invalid Google credential token' });
+    }
+
+    const payload = (await response.json()) as any;
+
+    if (!payload.email) {
+      return res.status(400).json({ error: 'Google token does not contain email' });
+    }
+
+    const email = payload.email;
+    const name = payload.name || payload.given_name || 'Google User';
+    const avatarUrl = payload.picture || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}`;
+
+    // 2. Find or create the user in the database
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      // Create user with a dummy hashed password since they log in via Google
+      const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      user = await prisma.user.create({
+        data: {
+          email,
+          password: dummyPassword,
+          name,
+          role: 'STUDENT',
+          avatarUrl,
+          level: 1,
+          xp: 0
+        }
+      });
+    }
+
+    // 3. Issue JWT token
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        major: user.major,
+        avatarUrl: user.avatarUrl,
+        level: user.level,
+        xp: user.xp,
+        careerReadinessScore: user.careerReadinessScore,
+        skillMasteryScore: user.skillMasteryScore
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Google login failed' });
+  }
+};
