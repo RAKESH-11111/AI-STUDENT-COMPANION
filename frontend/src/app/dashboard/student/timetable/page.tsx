@@ -7,13 +7,100 @@ import SideNavBar from '../../../../components/SideNavBar';
 import TopNavBar from '../../../../components/TopNavBar';
 import FloatingAiAssistant from '../../../../components/FloatingAiAssistant';
 
+interface TimetableEvent {
+  id: string;
+  title: string;
+  day: 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+  startTime: string; // e.g. "08:30"
+  endTime: string;   // e.g. "10:30"
+  category: 'class' | 'lab' | 'ai-review' | 'deep-focus' | 'quiz';
+  location?: string;
+  instructor?: string;
+}
+
 export default function Timetable() {
   const router = useRouter();
   const { user, token, initializeAuth, fetchStudentData } = useStore();
 
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'list'>('weekly');
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [newTaskInput, setNewTaskInput] = useState('');
+
+  // Form States for new timetable task
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDay, setTaskDay] = useState<'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun'>('Mon');
+  const [taskStartTime, setTaskStartTime] = useState('09:00');
+  const [taskEndTime, setTaskEndTime] = useState('10:30');
+  const [taskCategory, setTaskCategory] = useState('class');
+
+  // Timetable Events State
+  const [events, setEvents] = useState<TimetableEvent[]>([
+    {
+      id: '1',
+      title: 'Advanced Calculus',
+      day: 'Mon',
+      startTime: '08:30',
+      endTime: '10:30',
+      category: 'class',
+      location: 'Room 402B',
+      instructor: 'Prof. Henderson'
+    },
+    {
+      id: '2',
+      title: 'AI Review',
+      day: 'Mon',
+      startTime: '14:00',
+      endTime: '15:30',
+      category: 'ai-review'
+    },
+    {
+      id: '3',
+      title: 'Lab: Organic Chem',
+      day: 'Tue',
+      startTime: '10:00',
+      endTime: '12:00',
+      category: 'lab'
+    },
+    {
+      id: '4',
+      title: 'Deep Focus',
+      day: 'Tue',
+      startTime: '15:00',
+      endTime: '17:00',
+      category: 'deep-focus'
+    },
+    {
+      id: '5',
+      title: 'Seminar: Ethics',
+      day: 'Wed',
+      startTime: '08:00',
+      endTime: '09:30',
+      category: 'class'
+    },
+    {
+      id: '6',
+      title: 'Neuroscience 101',
+      day: 'Wed',
+      startTime: '11:00',
+      endTime: '14:00',
+      category: 'class'
+    },
+    {
+      id: '7',
+      title: 'Practice Quiz',
+      day: 'Thu',
+      startTime: '09:00',
+      endTime: '10:30',
+      category: 'quiz'
+    },
+    {
+      id: '8',
+      title: 'History of Art',
+      day: 'Fri',
+      startTime: '08:30',
+      endTime: '11:30',
+      category: 'class'
+    }
+  ]);
 
   // Local state for today's focus items
   const [focusTasks, setFocusTasks] = useState([
@@ -45,14 +132,76 @@ export default function Timetable() {
     );
   }
 
+  const calculatePosition = (startTime: string, endTime: string) => {
+    const parseTimeToMinutes = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const startMinutes = parseTimeToMinutes(startTime);
+    const endMinutes = parseTimeToMinutes(endTime);
+    const baseMinutes = 8 * 60; // Grid starts at 08:00
+
+    const top = ((startMinutes - baseMinutes) / 60) * 80;
+    const height = ((endMinutes - startMinutes) / 60) * 80;
+
+    return {
+      top: `${top}px`,
+      height: `${height}px`
+    };
+  };
+
+  const getCategoryStyles = (category: string) => {
+    switch (category) {
+      case 'class':
+        return 'bg-secondary-container/20 border-l-4 border-secondary text-on-secondary-fixed-variant';
+      case 'lab':
+        return 'bg-tertiary-fixed/30 border-l-4 border-tertiary text-on-tertiary-fixed-variant';
+      case 'ai-review':
+      case 'quiz':
+        return 'bg-primary-container/10 border-l-4 border-primary text-primary';
+      case 'deep-focus':
+        return 'bg-primary-container/10 border-l-4 border-primary text-primary';
+      default:
+        return 'bg-surface-container border-l-4 border-outline text-on-surface';
+    }
+  };
+
   const handleAddNewTask = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTaskInput.trim()) return;
-    setFocusTasks([
-      ...focusTasks,
-      { id: Date.now().toString(), title: newTaskInput, dueInfo: 'Just added', isUrgent: false }
-    ]);
-    setNewTaskInput('');
+    if (!taskTitle.trim()) return;
+
+    const newEvent: TimetableEvent = {
+      id: Date.now().toString(),
+      title: taskTitle,
+      day: taskDay,
+      startTime: taskStartTime,
+      endTime: taskEndTime,
+      category: taskCategory as any
+    };
+
+    setEvents([...events, newEvent]);
+
+    // Also add to sidebar focus tasks if it's Wednesday (today in mock data)
+    if (taskDay === 'Wed') {
+      setFocusTasks([
+        ...focusTasks,
+        {
+          id: Date.now().toString(),
+          title: taskTitle,
+          dueInfo: `${taskStartTime} - ${taskEndTime}`,
+          isUrgent: taskCategory === 'deep-focus' || taskCategory === 'ai-review'
+        }
+      ]);
+    }
+
+    // Reset inputs
+    setTaskTitle('');
+    setTaskDay('Mon');
+    setTaskStartTime('09:00');
+    setTaskEndTime('10:30');
+    setTaskCategory('class');
+
     setShowAddTaskModal(false);
   };
 
@@ -154,98 +303,59 @@ export default function Timetable() {
                 <div className="h-20">17:00</div>
               </div>
 
-              {/* Mon */}
-              <div className="col-span-1 flex flex-col gap-1">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Mon <span className="text-on-surface">11</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/30 rounded-lg min-h-[800px]">
-                  <div className="absolute top-4 left-0 right-0 h-40 m-1 p-2 rounded-xl bg-secondary-container/20 border-l-4 border-secondary text-on-secondary-fixed-variant group transition-all hover:scale-[1.02] cursor-pointer">
-                    <p className="text-label-sm font-bold">Advanced Calculus</p>
-                    <p className="text-[10px] opacity-70">08:30 - 10:30</p>
-                    <div className="mt-2 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200">Room 402B • Prof. Henderson</div>
-                  </div>
-                  <div className="absolute top-[280px] left-0 right-0 h-24 m-1 p-2 rounded-xl bg-primary-container/10 border-l-4 border-primary text-primary group transition-all hover:scale-[1.02] cursor-pointer">
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">psychology</span>
-                      <p className="text-label-sm font-bold">AI Review</p>
+              {/* Monday to Sunday Day Columns */}
+              {([
+                { key: 'Mon', label: 'Mon', date: '11', isToday: false, isWeekend: false },
+                { key: 'Tue', label: 'Tue', date: '12', isToday: false, isWeekend: false },
+                { key: 'Wed', label: 'Wed', date: '13', isToday: true, isWeekend: false },
+                { key: 'Thu', label: 'Thu', date: '14', isToday: false, isWeekend: false },
+                { key: 'Fri', label: 'Fri', date: '15', isToday: false, isWeekend: false },
+                { key: 'Sat', label: 'Sat', date: '16', isToday: false, isWeekend: true },
+                { key: 'Sun', label: 'Sun', date: '17', isToday: false, isWeekend: true },
+              ]).map((day) => {
+                const dayEvents = events.filter((e) => e.day === day.key);
+                return (
+                  <div key={day.key} className={`col-span-1 flex flex-col gap-1 ${day.isToday ? 'bg-primary/5' : ''} ${day.isWeekend ? 'opacity-60' : ''}`}>
+                    <div className={`h-12 flex flex-col items-center justify-center font-label-md ${
+                      day.isToday ? 'text-primary bg-primary/10 rounded-t-xl' : 'text-on-surface-variant'
+                    }`}>
+                      {day.label} <span className={day.isToday ? 'text-[18px] font-bold' : 'text-on-surface'}>{day.date}</span>
                     </div>
-                    <p className="text-[10px] opacity-70">14:00 - 15:30</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tue */}
-              <div className="col-span-1 flex flex-col gap-1">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Tue <span className="text-on-surface">12</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/30 rounded-lg">
-                  <div className="absolute top-[120px] left-0 right-0 h-32 m-1 p-2 rounded-xl bg-tertiary-fixed/30 border-l-4 border-tertiary text-on-tertiary-fixed-variant group transition-all hover:scale-[1.02] cursor-pointer">
-                    <p className="text-label-sm font-bold">Lab: Organic Chem</p>
-                    <p className="text-[10px] opacity-70">10:00 - 12:00</p>
-                  </div>
-                  <div className="absolute top-[320px] left-0 right-0 h-32 m-1 p-2 rounded-xl bg-primary-container/10 border-l-4 border-primary text-primary group transition-all hover:scale-[1.02] cursor-pointer">
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">bolt</span>
-                      <p className="text-label-sm font-bold">Deep Focus</p>
+                    <div className={`relative flex-1 bg-surface-container-lowest/30 rounded-lg min-h-[800px] ${
+                      day.isToday ? 'bg-surface-container-lowest/50 rounded-b-xl border-x border-primary/20' : ''
+                    }`}>
+                      {dayEvents.map((event) => {
+                        const pos = calculatePosition(event.startTime, event.endTime);
+                        return (
+                          <div
+                            key={event.id}
+                            style={{ top: pos.top, height: pos.height }}
+                            className={`absolute left-0 right-0 m-1 p-2 rounded-xl group transition-all hover:scale-[1.02] cursor-pointer ${getCategoryStyles(event.category)}`}
+                          >
+                            <div className="flex items-center gap-1">
+                              {event.category === 'ai-review' && <span className="material-symbols-outlined text-[14px]">psychology</span>}
+                              {event.category === 'deep-focus' && <span className="material-symbols-outlined text-[14px]">bolt</span>}
+                              {event.category === 'quiz' && <span className="material-symbols-outlined text-[14px]">auto_awesome</span>}
+                              <p className="text-label-sm font-bold truncate">{event.title}</p>
+                            </div>
+                            <p className="text-[10px] opacity-70">{event.startTime} - {event.endTime}</p>
+                            {(event.location || event.instructor) && (
+                              <div className="mt-1 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 truncate">
+                                {event.location} {event.instructor && `• ${event.instructor}`}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {day.isToday && (
+                        <div className="absolute top-[280px] w-full border-t-2 border-error/50 z-10 flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-error -ml-1"></span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[10px] opacity-70">15:00 - 17:00</p>
                   </div>
-                </div>
-              </div>
-
-              {/* Wed */}
-              <div className="col-span-1 flex flex-col gap-1 bg-primary/5">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-primary bg-primary/10 rounded-t-xl">Wed <span className="text-[18px] font-bold">13</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/50 rounded-b-xl border-x border-primary/20">
-                  <div className="absolute top-2 left-0 right-0 h-16 m-1 p-2 rounded-xl bg-secondary-container/20 border-l-4 border-secondary text-on-secondary-fixed-variant group transition-all hover:scale-[1.02] cursor-pointer">
-                    <p className="text-label-sm font-bold">Seminar: Ethics</p>
-                    <p className="text-[10px] opacity-70">08:00 - 09:30</p>
-                  </div>
-                  <div className="absolute top-[160px] left-0 right-0 h-48 m-1 p-2 rounded-xl bg-secondary-container/20 border-l-4 border-secondary text-on-secondary-fixed-variant group transition-all hover:scale-[1.02] cursor-pointer">
-                    <p className="text-label-sm font-bold">Neuroscience 101</p>
-                    <p className="text-[10px] opacity-70">11:00 - 14:00</p>
-                  </div>
-                  {/* Current Time Indicator Simulation */}
-                  <div className="absolute top-[280px] w-full border-t-2 border-error/50 z-10 flex items-center">
-                    <span className="w-2 h-2 rounded-full bg-error -ml-1"></span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Thu */}
-              <div className="col-span-1 flex flex-col gap-1">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Thu <span className="text-on-surface">14</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/30 rounded-lg">
-                  <div className="absolute top-[80px] left-0 right-0 h-24 m-1 p-2 rounded-xl bg-primary-container/10 border-l-4 border-primary text-primary group transition-all hover:scale-[1.02] cursor-pointer">
-                    <div className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                      <p className="text-label-sm font-bold">Practice Quiz</p>
-                    </div>
-                    <p className="text-[10px] opacity-70">09:00 - 10:30</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Fri */}
-              <div className="col-span-1 flex flex-col gap-1">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Fri <span className="text-on-surface">15</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/30 rounded-lg">
-                  <div className="absolute top-4 left-0 right-0 h-40 m-1 p-2 rounded-xl bg-secondary-container/20 border-l-4 border-secondary text-on-secondary-fixed-variant">
-                    <p className="text-label-sm font-bold">History of Art</p>
-                    <p className="text-[10px] opacity-70">08:30 - 11:30</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sat */}
-              <div className="col-span-1 flex flex-col gap-1 opacity-60">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Sat <span className="text-on-surface">16</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/20 rounded-lg"></div>
-              </div>
-
-              {/* Sun */}
-              <div className="col-span-1 flex flex-col gap-1 opacity-60">
-                <div className="h-12 flex flex-col items-center justify-center font-label-md text-on-surface-variant">Sun <span className="text-on-surface">17</span></div>
-                <div className="relative flex-1 bg-surface-container-lowest/20 rounded-lg"></div>
-              </div>
+                );
+              })}
 
             </div>
           </div>
@@ -321,24 +431,83 @@ export default function Timetable() {
       {/* Add Task Modal */}
       {showAddTaskModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm border border-outline-variant/10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="font-bold text-[18px] text-on-surface mb-2">Add New Focus Task</h3>
+          <div className="bg-white dark:bg-[#0c0f1d] rounded-3xl p-6 w-full max-w-sm border border-outline-variant/10 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="font-bold text-[18px] text-on-surface mb-4">Add Timetable Task</h3>
             <form onSubmit={handleAddNewTask} className="space-y-4">
-              <input
-                type="text"
-                value={newTaskInput}
-                onChange={(e) => setNewTaskInput(e.target.value)}
-                placeholder="e.g. Study Organic Chemistry"
-                className="w-full h-12 border border-outline-variant/30 rounded-xl px-4 text-[14px] focus:ring-2 focus:ring-primary/20 outline-none text-on-surface"
-                required
-                autoFocus
-              />
-              <div className="flex gap-3 justify-end">
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className="px-4 py-2 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface-variant hover:bg-surface-container">
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Task Title</label>
+                <input
+                  type="text"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  placeholder="e.g. Advanced Calculus"
+                  className="w-full h-12 border border-outline-variant/30 dark:border-outline-variant/10 bg-surface dark:bg-surface-container-high rounded-xl px-4 text-[14px] outline-none text-on-surface"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Day of Week</label>
+                <select
+                  value={taskDay}
+                  onChange={(e) => setTaskDay(e.target.value as any)}
+                  className="w-full h-12 border border-outline-variant/30 dark:border-outline-variant/10 bg-surface dark:bg-surface-container-high rounded-xl px-4 text-[14px] outline-none text-on-surface"
+                >
+                  <option value="Mon">Monday</option>
+                  <option value="Tue">Tuesday</option>
+                  <option value="Wed">Wednesday</option>
+                  <option value="Thu">Thursday</option>
+                  <option value="Fri">Friday</option>
+                  <option value="Sat">Saturday</option>
+                  <option value="Sun">Sunday</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Start Time</label>
+                  <input
+                    type="time"
+                    value={taskStartTime}
+                    onChange={(e) => setTaskStartTime(e.target.value)}
+                    className="w-full h-12 border border-outline-variant/30 dark:border-outline-variant/10 bg-surface dark:bg-surface-container-high rounded-xl px-4 text-[14px] outline-none text-on-surface"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">End Time</label>
+                  <input
+                    type="time"
+                    value={taskEndTime}
+                    onChange={(e) => setTaskEndTime(e.target.value)}
+                    className="w-full h-12 border border-outline-variant/30 dark:border-outline-variant/10 bg-surface dark:bg-surface-container-high rounded-xl px-4 text-[14px] outline-none text-on-surface"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Category</label>
+                <select
+                  value={taskCategory}
+                  onChange={(e) => setTaskCategory(e.target.value)}
+                  className="w-full h-12 border border-outline-variant/30 dark:border-outline-variant/10 bg-surface dark:bg-surface-container-high rounded-xl px-4 text-[14px] outline-none text-on-surface"
+                >
+                  <option value="class">Class (Secondary Color)</option>
+                  <option value="lab">Lab (Tertiary Color)</option>
+                  <option value="deep-focus">Deep Focus (Primary Color)</option>
+                  <option value="ai-review">AI Review (Primary Color)</option>
+                  <option value="quiz">Practice Quiz (Primary Color)</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" onClick={() => setShowAddTaskModal(false)} className="px-4 py-2.5 border border-outline-variant/30 rounded-xl text-[12px] font-bold text-on-surface-variant hover:bg-surface-container transition-colors">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 bg-primary text-white rounded-xl text-[12px] font-bold shadow-md hover:opacity-90">
-                  Add Task
+                <button type="submit" className="px-5 py-2.5 bg-primary text-white rounded-xl text-[12px] font-bold shadow-md hover:opacity-90 transition-all">
+                  Schedule Task
                 </button>
               </div>
             </form>
